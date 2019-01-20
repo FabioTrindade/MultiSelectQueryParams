@@ -1,0 +1,115 @@
+﻿@model MultiSelectQueryParams.Models.Home.HomeFilters
+
+@{
+    ViewBag.Title = "MultiSelect";
+    ViewBag.Message = "Passando valores de um MultiSelect via QueryParams.";
+}
+
+<h3>@ViewBag.Message</h3>
+
+@using (Html.BeginForm("Index", "Home", FormMethod.Post, new { @id = "frmPesquisa" }))
+{
+    <div class="panel-heading">
+        <div class="row">
+            <div class="col-md-12">
+                @Html.DropDownListFor(m => m.situacaoId, (MultiSelectList)ViewBag.Situacao, new { @class = "form-control", @multiple = "multiple" })
+
+                <a class="btn btn-default" onclick="atualizaDataTable()"> Atualizar </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-body">
+        <div class="row">
+            <div class="col-md-12">
+                <table id="tablePesquisa"
+                       data-pagination="true"
+                       data-page-list="[10, 25, 50, 100, ALL]"
+                       data-side-pagination="server">
+                </table>
+            </div>
+        </div>
+    </div>
+}
+@section scripts{
+    <script>
+        $(document).ready(function () {
+            $("#situacaoId").multiselect({
+                nonSelectedText: 'Marque uma opção!',
+                nSelectedText: ' - opções selecionadas!',
+                allSelectedText: 'Todos selecionados',
+                selectAllText: 'Selecionar todos!',
+                includeSelectAllOption: true,
+                enableFiltering: true,
+                enableCaseInsensitiveFiltering: true,
+                buttonWidth: "370px",
+                numberDisplayed: 0,
+            });
+
+            $('#tablePesquisa').bootstrapTable({
+                method: "GET",
+                pageSize: 10,
+                queryParams: function (params) {
+                    q = {
+                        limit: 10,
+                        offset: params.offset
+                    }
+                    return q;
+                },
+                columns: [
+                    { field: 'id', title: 'Id', align: 'center' },
+                    { field: 'descricao', title: 'Descricao', align: 'center' },
+                    { field: 'situcaoId', title: 'SitucaoId', align: 'center' }
+                ]
+            });
+
+        })
+
+        function getFormData($form) {
+ 
+            let unindexed_array = $form.serializeArray();
+            let indexed_array = {};
+            let x = 0;
+            let item;
+            let newItem;
+
+            $.map(unindexed_array, function (n, i) {
+
+                if (typeof $(`#${n['name']}`).val() == 'object') {
+
+                    if ((indexed_array[n['name']] == undefined)) {
+                        newItem = n['name']
+
+                        if (newItem != item)
+                            x = 0
+
+                        indexed_array[`${n['name']}[${[x++]}]`] = n['value'];
+                    }
+                }
+                else {
+                    indexed_array[n['name']] = n['value'];
+                }
+                item = n['name'];
+            });
+
+            return indexed_array;
+        }
+
+        function atualizaDataTable() {
+
+            $('#tablePesquisa').bootstrapTable('refreshOptions', {
+                url: "/Home/ObterJsonResult",
+                queryParams: function (params) {
+                    query = getFormData($('#frmPesquisa'))
+                    query.limit = params.limit;
+                    query.offset = params.offset;
+
+                    return query;
+                }
+            });
+
+            console.log(data);
+        }
+
+    </script>
+}
